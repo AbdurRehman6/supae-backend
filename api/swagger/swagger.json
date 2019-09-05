@@ -1,0 +1,799 @@
+
+  {
+    "swagger": "2.0",
+    "info": {
+      "description": "creating Sup api documantation using swagger ",
+      "version": "1.0.0",
+      "title": "Sup Api"
+    },
+    "host": " 192.168.10.20:3000",
+    "basePath": "/kitchens",
+    "tags": [
+      {
+        "name": "kitchen",
+        "description": "Everything about Kitchens"
+      
+      }      
+    
+    ],
+    "schemes": [
+      "https",
+      "http"
+    ],
+    "paths": {
+      "/users/getkitchenbyid/{kitchenId}": {
+        "get": {
+          "tags": [
+            "kitchen"
+          ],
+          "summary": "Find kitchen by ID",
+          "description": "Returns a single kitchen",
+          "operationId": "getKitchenById",
+          "produces": [
+            "application/xml",
+            "application/json"
+          ],
+          "parameters": [
+            {
+              "name": "kitchenId",
+              "in": "req.body",
+              "description": "ID of Kitchen to return",
+              "required": true,
+              "type": "mongoose.Types.ObjectId()",
+              "format": "mongooseObject"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "successful operation"
+             
+            },
+            "400": {
+              "description": "Invalid ID supplied"
+            },
+            "404": {
+              "description": "kitchen not found"
+            }
+          },
+          "security": [
+            {
+              "api_key": []
+            }
+          ]
+        } 
+      },
+      "/users/getkitchens": {
+        "get": {
+          "tags": [
+            "kitchen"
+          ],
+          "summary": "fetch All kitchens ",
+          "description": "Returns kitchen Collection",          
+          "produces": [
+            "application/xml",
+            "application/json"
+          ],          
+          "responses": {
+            "200": {
+              "description": "successful operation"
+             
+            },
+            "400": {
+              "description": "Invalid ID supplied"
+            },
+            "404": {
+              "description": "kitchen not found"
+            }
+          },
+          "security": [
+            {
+              "api_key": []
+            }
+          ]
+        }
+      } ,
+      "/users/signup": {
+        "post": {
+          "tags": [
+            "kitchen"
+          ],
+          "summary": "Add a new kitchen to the collection",
+          "description": "",
+          "operationId": "addkitchen",
+          "consumes": [
+            "application/json",
+            "application/xml"
+          ],
+          "produces": [
+            "application/xml",
+            "application/json"
+          ],
+          "parameters": [
+            {
+              "in": "body",
+              "name": "body",
+              "description": "kitchen object that needs to be added to the Collection",
+              "required": true,
+              "schema": {
+                "$ref": "#/definitions/kitchen"
+              }
+            }
+          ],
+          "responses": {
+            "405": {
+              "description": "Invalid input"
+            }
+          },
+          "security": [
+            {
+              "petstore_auth": [
+                "write:kitchen",
+                "read:kitchen"
+              ]
+            }
+          ]
+        }       
+      },
+      "/users/updatekitchen/{kitchenId}": {
+        "patch": {
+          "tags": [
+            "kitchen"
+          ],
+          "summary": "Update an existing kitchen",
+          "description": "",
+          "operationId": "",
+          "consumes": [
+            "application/json",
+            "application/xml"
+          ],
+          "produces": [
+            "application/xml",
+            "application/json"
+          ],
+          "parameters": [
+            {
+              "in": "body",
+              "name": "body",
+              "description": "kitchen object that needs to be added to the collection",
+              "required": true,
+              "schema": {
+                "$ref": "#/definitions/kitchen"
+              }
+            }
+          ],
+          "responses": {
+            "400": {
+              "description": "Invalid ID supplied"
+            },
+            "404": {
+              "description": "Pet not found"
+            },
+            "405": {
+              "description": "Validation exception"
+            }
+          },
+          "security": [
+            {
+              "kitchen_auth": [
+                "write:kitchen",
+                "read:kitchen"
+              ]
+            }
+          ]
+        }
+      } ,
+      "/users/deletekitchen/{kitchenId}": {
+        "delete": {
+          "tags": [
+            "kitchen"
+          ],
+          "summary": "Delete a kitchen",
+          "description": "",
+          "operationId": "deleteKitchen",
+          "produces": [
+            "application/xml",
+            "application/json"
+          ],
+          "parameters": [
+            {
+              "name": "api_key",
+              "in": "req.params",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "name": "kitchenId",
+              "in": "req.params",
+              "description": "kitchen id to delete",
+              "required": true,
+              "type": "mongoose.Types.ObjectId",
+              "format": "mongoose.schema.ObjectId"
+            }
+          ],
+          "responses": {
+            "400": {
+              "description": "Invalid ID supplied"
+            },
+            "404": {
+              "description": "Pet not found"
+            }
+          },
+          "security": [
+            {
+              "petstore_auth": [
+                "write:kitchen",
+                "read:kitchen"
+              ]
+            }
+          ]
+        }
+      },
+      "/users/getsupplierbyid/{supplierId}": {
+        "get": {
+          "tags": [
+            "supplier"
+          ],
+          "summary": "Find supplier by ID",
+          "description": "Returns a single supplier",
+          "operationId": "getsupplierbyid",
+          "produces": [
+            "application/xml",
+            "application/json"
+          ],
+          "parameters": [
+            {
+              "name": "supplierId",
+              "in": "req.body",
+              "description": "ID of supplier to return",
+              "required": true,
+              "type": "mongoose.Types.ObjectId()",
+              "format": "mongooseObject"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "successful operation"
+             
+            },
+            "400": {
+              "description": "Invalid ID supplied"
+            },
+            "404": {
+              "description": "kitchen not found"
+            }
+          },
+          "security": [
+            {
+              "api_key": []
+            }
+          ]
+        } 
+      },
+      "/users/getsuppliers": {
+        "get": {
+          "tags": [
+            "supplier"
+          ],
+          "summary": "fetch All Suppliers ",
+          "description": "Returns Suppliers Collection",          
+          "produces": [
+            "application/xml",
+            "application/json"
+          ],          
+          "responses": {
+            "200": {
+              "description": "successful operation"
+             
+            },
+            "400": {
+              "description": "Invalid ID supplied"
+            },
+            "404": {
+              "description": "kitchen not found"
+            }
+          },
+          "security": [
+            {
+              "api_key": []
+            }
+          ]
+        }
+      },
+      "/users/signup/supplier": {
+        "post": {
+          "tags": [
+            "supplier"
+          ],
+          "summary": "Add a new supplier to the collection",
+          "description": "",
+          "operationId": "addsupplier",
+          "consumes": [
+            "application/json",
+            "application/xml"
+          ],
+          "produces": [
+            "application/xml",
+            "application/json"
+          ],
+          "parameters": [
+            {
+              "in": "body",
+              "name": "body",
+              "description": "supplier object that needs to be added to the Collection",
+              "required": true,
+              "schema": {
+                "$ref": "#/definitions/supplier"
+              }
+            }
+          ],
+          "responses": {
+            "405": {
+              "description": "Invalid input"
+            }
+          },
+          "security": [
+            {
+              "petstore_auth": [
+                "write:supplier",
+                "read:supplier"
+              ]
+            }
+          ]
+        }       
+      },
+      "/users/updatesupplier/{supplierId}": {
+        "patch": {
+          "tags": [
+            "supplier"
+          ],
+          "summary": "Update an existing supplier",
+          "description": "",
+          "operationId": "",
+          "consumes": [
+            "application/json",
+            "application/xml"
+          ],
+          "produces": [
+            "application/xml",
+            "application/json"
+          ],
+          "parameters": [
+            {
+              "in": "body",
+              "name": "body",
+              "description": "supplier object that needs to be added to the collection",
+              "required": true,
+              "schema": {
+                "$ref": "#/definitions/Supplier"
+              }
+            }
+          ],
+          "responses": {
+            "400": {
+              "description": "Invalid ID supplied"
+            },
+            "404": {
+              "description": "Pet not found"
+            },
+            "405": {
+              "description": "Validation exception"
+            }
+          },
+          "security": [
+            {
+              "kitchen_auth": [
+                "write:supplier",
+                "read:supplier"
+              ]
+            }
+          ]
+        }
+      },  "/users/deletesupplier/{supplierId}": {
+        "delete": {
+          "tags": [
+            "supplier"
+          ],
+          "summary": "Delete a Supplier",
+          "description": "",
+          "operationId": "deleteSupplier",
+          "produces": [
+            "application/xml",
+            "application/json"
+          ],
+          "parameters": [
+            {
+              "name": "api_key",
+              "in": "req.params",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "name": "supplierId",
+              "in": "req.params",
+              "description": "Supplier id to delete",
+              "required": true,
+              "type": "mongoose.Types.ObjectId",
+              "format": "mongoose.schema.ObjectId"
+            }
+          ],
+          "responses": {
+            "400": {
+              "description": "Invalid ID supplied"
+            },
+            "404": {
+              "description": "Pet not found"
+            }
+          },
+          "security": [
+            {
+              "petstore_auth": [
+                "write:Supplier",
+                "read:Supplier"
+              ]
+            }
+          ]
+        }
+      },
+      "/categories/getcategoriesbyid/{categoryId}": {
+        "get": {
+          "tags": [
+            "Categories"
+          ],
+          "summary": "Find Category by ID",
+          "description": "Returns a single Category",
+          "operationId": "getCategoriesById",
+          "produces": [
+            "application/xml",
+            "application/json"
+          ],
+          "parameters": [
+            {
+              "name": "categoryId",
+              "in": "req.body",
+              "description": "ID of Category to return",
+              "required": true,
+              "type": "mongoose.Types.ObjectId()",
+              "format": "mongooseObject"
+            }
+          ],
+          "responses": {
+            "200": {
+              "description": "successful operation"
+             
+            },
+            "400": {
+              "description": "Invalid ID supplied"
+            },
+            "404": {
+              "description": "kitchen not found"
+            }
+          },
+          "security": [
+            {
+              "api_key": []
+            }
+          ]
+        } 
+      },
+      "/categories/getcategories": {
+        "get": {
+          "tags": [
+            "Categories"
+          ],
+          "summary": "fetch All Categories ",
+          "description": "Returns Categories Collection",          
+          "produces": [
+            "application/xml",
+            "application/json"
+          ],          
+          "responses": {
+            "200": {
+              "description": "successful operation"
+             
+            },
+            "400": {
+              "description": "Invalid ID supplied"
+            },
+            "404": {
+              "description": "kitchen not found"
+            }
+          },
+          "security": [
+            {
+              "api_key": []
+            }
+          ]
+        }
+      },
+      "/categories/addcategories": {
+        "post": {
+          "tags": [
+            "Categories"
+          ],
+          "summary": "Add a new Category to the collection",
+          "description": "",
+          "operationId": "addCategory",
+          "consumes": [
+            "application/json",
+            "application/xml"
+          ],
+          "produces": [
+            "application/xml",
+            "application/json"
+          ],
+          "parameters": [
+            {
+              "in": "body",
+              "name": "body",
+              "description": "Category object that needs to be added to the Collection",
+              "required": true,
+              "schema": {
+                "$ref": "#/definitions/Categories"
+              }
+            }
+          ],
+          "responses": {
+            "405": {
+              "description": "Invalid input"
+            }
+          },
+          "security": [
+            {
+              "petstore_auth": [
+                "write:category",
+                "read:category"
+              ]
+            }
+          ]
+        }       
+      },
+      "/users/updatecategory/{categoryId}": {
+        "patch": {
+          "tags": [
+            "Categories"
+          ],
+          "summary": "Update an existing Category",
+          "description": "",
+          "operationId": "",
+          "consumes": [
+            "application/json",
+            "application/xml"
+          ],
+          "produces": [
+            "application/xml",
+            "application/json"
+          ],
+          "parameters": [
+            {
+              "in": "body",
+              "name": "body",
+              "description": "Category object that needs to be added to the collection",
+              "required": true,
+              "schema": {
+                "$ref": "#/definitions/Category"
+              }
+            }
+          ],
+          "responses": {
+            "400": {
+              "description": "Invalid ID supplied"
+            },
+            "404": {
+              "description": "Pet not found"
+            },
+            "405": {
+              "description": "Validation exception"
+            }
+          },
+          "security": [
+            {
+              "kitchen_auth": [
+                "write:kitchen",
+                "read:kitchen"
+              ]
+            }
+          ]
+        }
+      },
+      "/users/deletecategories/{categoryId}": {
+        "delete": {
+          "tags": [
+            "Categories"
+          ],
+          "summary": "Delete a Category",
+          "description": "",
+          "operationId": "deleteCategory",
+          "produces": [
+            "application/xml",
+            "application/json"
+          ],
+          "parameters": [
+            {
+              "name": "api_key",
+              "in": "req.params",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "name": "categoryId",
+              "in": "req.params",
+              "description": "category id to delete",
+              "required": true,
+              "type": "mongoose.Types.ObjectId",
+              "format": "mongoose.schema.ObjectId"
+            }
+          ],
+          "responses": {
+            "400": {
+              "description": "Invalid ID supplied"
+            },
+            "404": {
+              "description": "Pet not found"
+            }
+          },
+          "security": [
+            {
+              "petstore_auth": [
+                "write:Category",
+                "read:Category"
+              ]
+            }
+          ]
+        }
+      }
+
+
+    },   
+     
+    "securityDefinitions": {
+      "petstore_auth": {
+        "type": "oauth2",
+        "authorizationUrl": "http://petstore.swagger.io/oauth/dialog",
+        "flow": "implicit"
+        
+      },
+      "api_key": {
+        "type": "apiKey",
+        "name": "api_key",
+        "in": "header"
+      }
+    },
+    "definitions": {     
+     
+      "Kitchen": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "mongoose.Types.ObjectId",
+            "format": "mongoose.schema.objectId"
+          },
+          "kitchenName": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },         
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "userType": {
+            "type": "string"           
+           
+          },
+          "createdDate": {
+            "type": "DateTime"           
+           
+          },
+          "updatedDate": {
+            "type": "DateTime"           
+           
+          },
+          "user": {
+            "type": "mongoose.Types.ObjectId"           
+           
+          }
+        },
+        "xml": {
+          "name": "kitchen"
+        }
+      },
+      "supplier": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "mongoose.Types.ObjectId",
+            "format": "mongoose.schema.objectId"
+          },
+          "companyName": {
+            "type": "string"
+          },
+          "trnNumber": {
+            "type": "string"
+          }, 
+          "supplyItem": {
+            "type": "string"           
+          },         
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "userType": {
+            "type": "string"           
+           
+          },
+          "createdDate": {
+            "type": "DateTime"           
+           
+          },
+          "updatedDate": {
+            "type": "DateTime"           
+           
+          },
+          "user": {
+            "type": "mongoose.Types.ObjectId"           
+           
+          }
+        },
+        "xml": {
+          "name": "supplier"
+        }
+      },
+      "Categories": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "mongoose.Types.ObjectId",
+            "format": "mongoose.schema.objectId"
+          },
+          "companyName": {
+            "type": "string"
+          },
+          "trnNumber": {
+            "type": "string"
+          }, 
+          "supplyItem": {
+            "type": "string"           
+          },         
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "userType": {
+            "type": "string"           
+           
+          },
+          "createdDate": {
+            "type": "DateTime"           
+           
+          },
+          "updatedDate": {
+            "type": "DateTime"           
+           
+          },
+          "user": {
+            "type": "mongoose.Types.ObjectId"           
+           
+          }
+        },
+        "xml": {
+          "name": "supplier"
+        }
+      }
+    }
+  }
