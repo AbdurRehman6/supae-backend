@@ -395,154 +395,28 @@ router.get('/getfulfilorders/:supplierId', (req, res, next) => {
 //Get in progress Orders
 
 router.get('/getinprogressorders/:supplierId', (req, res, next) => {
-    const id = req.params.supplierId   
-    OrderStatus.find({
-            "status": "In Progress",
-            "supplier": id
-        })
-        .populate('order', 'orderRefrence status')
-        // .populate('supplier','companyName')
-        .exec()
-        .then(docs => {
-            //  console.log('OrderStatus',docs)
-            OrderDetail.find({
-                    "orderDetailStatus": "In Progress",
-                    "supplier": id
-                })
-                .populate('order')
-                // .populate('supplier','companyName')
-                .exec()
-                .then(data => {                   
+    const id = req.params.supplierId  
+    OrderAcceptance.aggregate([
+        {
+            $lookup:{
+                from:'SupplierRefrance',
+                localField:'supplierRef',
+                foreignField:'_id',
+                as:'progress'
 
-                    Order.find({
-                            "status": "In Progress",
-                            "supplier": id
-                        })
-                        // .populate('supplier','companyName')
-                        .exec()
-                        .then(ordr => {                     
-                            // console.log('Order',ordr)
-                            OrderDetailSupplier.find({
-                                    "orderDetailSupplierStatus": "In Progress",
-                                    "supplier": id
-                                })
-                                .select('product orderDetailStatus')
-                                //.populate("supplier")
-                                .populate("orderDetail")
-                                .populate('order')
+            }
+        }
+    ]) 
+//     OrderAcceptance.find({      
+//         "supplier": id
+//     })
+//    .populate('supplierRef')
+//     // .populate('supplier','companyName')   
+//     .then(docs => {
+       
+//         // res.status(200).json(docs);
 
-                                .exec()
-                                .then(ods => {  
-
-                                    // console.log('_________________________________');
-                                      
-                                    // console.log('OrderDetail',data);
-                                    // console.log('++++++++++++++++++++++++++++');
-                                    // console.log('_________________________________');
-                                      
-                                    // console.log('order',ordr);
-                                    // console.log('++++++++++++++++++++++++++++');
-                                    // console.log('_________________________________');
-                                      
-                                    // console.log('OrderDetailSupplier',ods);
-                                    // console.log('++++++++++++++++++++++++++++');
-                                    var order_array =[] ;                       
-                                    var data_array =[] ;
-                                    var ods_array =[] ;
-                                    if (ordr.length > 0) {   
-                                                                                      
-                                        for (let index = 0; index < ordr.length; index++) {
-                                           
-                                            var orders = {
-                                                orderRefrence: ordr[index].orderRefrence,
-                                                status: ordr[index].status,
-                                                orderId: ordr[index]._id,
-                                                totalPrice: ordr[index].totalPrice,
-                                               // _id: ordr[index]._id,
-                                                orderQuantity: ordr[index].orderQuantity,
-                                                product: ordr[index].product,
-                                                //  status: data[0].status,
-                                                supplier: ordr[index].supplier,
-                                                isActive: ordr[index].isActive,
-                                                createdDate: ordr[index].createdDate,
-                                                
-                                            };
-                                            order_array.push(orders);
-                                        }
-                                    }
-                                     if (data.length > 0) {
-                                     for (let j = 0; j < data.length; j++) {
-                           
-                                        // if (data[i].order.statuss == null) {
-                                            var OrderDetailsTemp = {
-                                                orderRefrence: data[j].order.orderRefrence,
-                                                status: data[j].order.status,
-                                                orderId: data[j].order._id,
-                                                totalPrice: data[j].order.totalPrice,
-                                                _id: data[j]._id,
-                                                orderQuantity: data[j].orderQuantity,
-                                                product: data[j].product,
-                                                //  status: data[0].status,
-                                                supplier: data[j].supplier,
-                                                isActive: data[j].isActive,
-                                                createdDate: data[j].createdDate,
-                                                
-                                            };
-
-                                         data_array.push(OrderDetailsTemp);
-                                      
-                                    //  }
-                                        }
-                                    }
-
-                                    if (ods.length > 0) {
-                                      
-                                        for (let k = 0; k < ods.length; k++) {
-                                            var OrderDetailSupplierTemp = {
-                                                orderRefrence: ods[k].order.orderRefrence,
-                                                status: ods[k].order.status,
-                                                orderId: ods[k].order._id,
-                                                totalPrice: ods[k].order.totalPrice,
-                                                _id: ods[k]._id,
-                                                orderDetailId:ods[k].orderDetail,
-                                                orderQuantity: ods[k].order.orderQuantity,
-                                                product: ods[k].product,
-                                                supplier: ods[k].supplier,
-                                                isActive: ods[k].isActive,
-                                                createdDate: ods[k].createdDate,
-                                            };
-                                            ods_array.push(OrderDetailSupplierTemp);
-                                           
-                                        }
-                                  
-                                    } 
-                                    var ob = data_array.concat(order_array);
-                                    ods_array.forEach((element)=>{
-                                        ob.push(element)
-                                    })
-                                    // var obj1 = ob.concat(ods_array);
-                                     //  console.log('obj1',obj1)
-                                   //  res.status(200).json(obj1);
-                                    res.status(200).json(ob);
-
-                                    // var obj1 = data_array.concat(order_array);
-                                    // var obj2 = obj1.concat(ods);
-                                    // res.status(200).json(obj2);
-
-
-                                })
-
-                        })
-
-                })
-
-        })
-        .catch(err => {
-            console.log(err);
-            res.status(500).json({
-                error: err
-            });
-        });
+//     })
 });
 //Get Order details by id 
 router.get('/orderdetailsummary/:orderId', (req, res, next) => {
@@ -682,7 +556,7 @@ router.get('/orderdetails/:orderId', (req, res, next) => {
 });
 
 //Post Request To Add Orders data in collection
-router.post('/addorders', checkAuth, (req, res, next) => {  
+router.post('/addorders',  (req, res, next) => {  
     let _order = "Open";
     const date = new Date;
     const refNumber = 'ODR-' + generateUniqueId({
@@ -780,7 +654,9 @@ router.get('getorderbyid/:orderId', checkAuth, (req, res, next) => {
         });
 });
 //patch request if supplier accepts entire order
-router.post('/acceptentireorder', checkAuth, (req, res, next) => {
+router.post('/acceptentireorder',  (req, res, next) => {
+    let data ={};
+  
     const date = new Date;
     const refNumber = 'SUP-' + generateUniqueId({
         useNumbers: true,
@@ -799,24 +675,27 @@ router.post('/acceptentireorder', checkAuth, (req, res, next) => {
     });
     supplierRef.save()
      .then(result =>{  
+         const id =result._id
+        console.log('---------------------------');
+         console.log(id);
+         console.log('-------------------------');
+       
         for (let i = 0; i < req.body._orderDetails.length; i++) {
             //    console.log(JSON.stringify(req.body._orderDetails[i]))
             const orderAcceptance = new OrderAcceptance({
                 _id: mongoose.Types.ObjectId(),
                 takenQuantity: req.body._orderDetails[i].takenQuantity,
                 orderDetail: req.body._orderDetails[i].orderDetailId,
-                supplierRef: result._id,
-                supplier: req.body._orderDetails[i].supplierId,              
+               supplier: req.body._orderDetails[i].supplierId, 
+                supplierRef: id,
                 createdDate: date.toString(),
                 updatedDate: date.toString()
 
             });
             orderAcceptance.save()
                 .then(docs => {
-                    res.status(200).json({
-                        doc:docs,
-                        message:"You have successfully accepted the entire order"
-                    })
+                    data = docs
+               
 
                 })
                 .catch(err => {
@@ -827,39 +706,21 @@ router.post('/acceptentireorder', checkAuth, (req, res, next) => {
                             });
                         })
             }
-    })
+          res.status(201).json({
+          result:result,
+          message:"save successfully"
+          })
+           .catch(err => {
+            console.log(err);
+            res.status(500).json({
+                error: err
+            });
+        })
 
-    // Order.update({
-    //         _id: id
-    //     }, {
-    //         $set: {
-    //             status: "In Progress",
-    //             supplier: req.body.supplierId,
-    //             // orderRefrence:"SUP-324A2b234",
-    //             updateDate: updatedDate.toString(),
-    //         }
-    //     })
-    //     .exec()
-    //     .then(result => {
-    //         // console.log('result', result);
-    //         res.status(200).json({
-    //             result: result,
-    //             message: "You have successfully accepted the entire order"
-    //         });
-    //     })
-    //     .catch(err => {
-    //         console.log(err);
-    //         res.status(500).json({
-    //             error: err,
-    //             message:"We are getting an error while saving the order, you can you please try again "
-    //         });
-    //     })
+    })
 })
 //patch request if supplier fulfill  order
-router.patch('/updatestatusbysup/:orderId', (req, res, next) => {
-    console.log('--------------------------')
-    console.log(req.body)
-    console.log('--------------------------')
+router.patch('/updatestatusbysup/:orderId', (req, res, next) => {   
     const id = req.params.orderId
     const updatedDate = new Date;
     Order.update({

@@ -5,7 +5,7 @@ const orderAcceptanceSchema = new Schema({
     takenQuantity:{type:String},    
    orderDetail:{type:mongoose.Schema.Types.ObjectId, ref:'OrderDetails',required:true}, 
    supplierRef:{type:mongoose.Schema.Types.ObjectId, ref:'SupplierRefStatus',required:true},
-   supplier:{type:mongoose.Schema.Types.ObjectId, ref:'Supplier'}, 
+   supplier:{type:mongoose.Schema.Types.ObjectId, ref:'Supplier'},
    createdDate:{type:String},
    session:{type:mongoose.Schema.Types.ObjectId, ref:'Sessions'},  
     updateDate:{type:String}
