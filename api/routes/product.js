@@ -247,6 +247,7 @@ else
       })
   });
  });
+ 
  router.get('/productsearch/:query',(req,res,next) =>{
     
     const dataQuery = req.params.query
@@ -296,6 +297,5 @@ else
     //     res.status(500).json({})
     // });
  });
-
 
 module.exports =router;

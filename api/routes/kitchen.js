@@ -256,6 +256,7 @@ let _status =false;
                                         kitchencreated:docs,
                                         message:"Congratulations! You have successfully signed up for the kitchen"
 
+
                                     })
                                       sendEmail(req.body.user.email);    
                                 })

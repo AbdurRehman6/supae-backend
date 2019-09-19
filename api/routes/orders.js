@@ -639,7 +639,7 @@ router.patch('/updatestatusbysup/:orderId', (req, res, next) => {
             _id: id
         }, {
             $set: {
-                status: req.body.status,           
+                // status: req.body.status,           
                 updateDate: updatedDate.toString(),
             }
             
@@ -702,9 +702,10 @@ router.patch('/cancelorder/:orderId',  (req, res, next) => {
       }
       else
       {
-          data.forEach(element =>{            
+          data.forEach(element =>{  
+              console.log(data);          
             //  odDetail.push(element.orderDetail._id)
-             OrderDetail.find({"_id":element.orderDetail._id}).then(dd =>{                 
+             OrderDetail.find({"_id":element.orderDetail._id,"product":element.orderDetail.product}).then(dd =>{                 
                 dd.forEach(dt =>{                          
                    let rem =Number( dt.remainingQuantity + element.takenQuantity)
                     OrderDetail.update({_id:dt._id},{$set:{

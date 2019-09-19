@@ -228,6 +228,41 @@ router.get('/getcategoriesbyid/:catId',(req,res,next) =>{
         res.status(500).json({})
     });
  });
+ router.get('/getall parent/:catId',(req,res,next) =>{
+    const id = req.params.catId;
+    addToPath(id)
+    // Categories.findById(id)
+    // .exec()
+    // .then(doc =>{
+    //    if(doc)
+    //    {
+    //      res.status(200).json(doc);
+    //    }
+    //    else
+    //    {
+    //        res.status(404).json({
+    //            message:"no valid entry found against this id"
+    //        });
+    //    }
+    // })
+    // .catch(err =>{
+    //     console.log(err);
+    //     res.status(500).json({})
+    // });
+ });
+ function addToPath(id) {
+    var path=[];
+    Categories.findOne({_id:id}, function (err, item) {
+      if (err) {
+          return callback(err);
+      }
+      path.push(item._id);
+      if (item.categoryName !== null) {
+          addToPath(item.categoryName);
+      }
+    });
+    console.log(path);
+}
 
  //update Categories Data against CategoriesId
  router.patch('/updatecategory/:catId',upload.single('file'),(req,res,next) =>{
@@ -298,39 +333,4 @@ else{
       })
   });
  });
- router.get('/getall parent/:catId',(req,res,next) =>{
-    const id = req.params.catId;
-    addToPath(id)
-    // Categories.findById(id)
-    // .exec()
-    // .then(doc =>{
-    //    if(doc)
-    //    {
-    //      res.status(200).json(doc);
-    //    }
-    //    else
-    //    {
-    //        res.status(404).json({
-    //            message:"no valid entry found against this id"
-    //        });
-    //    }
-    // })
-    // .catch(err =>{
-    //     console.log(err);
-    //     res.status(500).json({})
-    // });
- });
- function addToPath(id) {
-    var path=[];
-    Categories.findOne({_id:id}, function (err, item) {
-      if (err) {
-          return callback(err);
-      }
-      path.push(item._id);
-      if (item.categoryName !== null) {
-          addToPath(item.categoryName);
-      }
-    });
-    console.log(path);
-}
 module.exports =router;
