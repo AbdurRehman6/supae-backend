@@ -11,6 +11,7 @@ const Orders = require('../../env/orders.model');
 const OrderDetails = require('../../env/order-details.model');
 const OrderStatus = require('../../env/order-status.model');
 const OrderDetailSupplier = require('../../env/order-detail-supplier.model');
+const OrderAcceptance = require('../../env/order-fulfilment.model');
 
 const Kitchen = require('../../env/kitchens.model');
 
@@ -473,5 +474,188 @@ router.get('/getopenorders', (req, res, next) => {
            res.status(200).json(cnt)
        })
     });
+    router.get('/getinprogressorders', (req, res, next) => {
+        // const id = req.params.supplierId  
+        OrderAcceptance.aggregate([
+                {
+                    $match: {
+                        $and: [{
+                            $or: [{
+                                status: "Cancelled" 
+                            }, {
+                                status: "QA In Progress"
+                            }, {
+                                status: "On the way"
+                            }, {
+                                status: "Delivered"
+                            }]
+                        }],
+                        //  "isActive": true
+                    }
+                },
+                {
+                    $lookup: {
+                        from: 'orders',
+                        localField: 'order',
+                        foreignField: '_id',
+                        as: 'od'
+                    }
+     
+                },
+                {
+                    $group: {
+                        _id: {
+                            referenceNumber: "$referenceNumber",
+                            status: "$status",
+                            "order": "$order",
+                            "partialType":"$partialType",
+                              "order":"$od",
+                              "supplier":"$supplier"
+                        },
+                        orderSize: {
+                            $sum: 1
+                        }
+                    }
+                }
+            ])
+            .then(ordr => {
+                console.log(ordr)
+                res.status(200).json(ordr)
+            })
+    });
+    router.patch('/updatestatusbysup/:orderId', (req, res, next) => {
+        console.log(req.body)
+         const id = req.params.orderId
+        console.log(req.params.orderId)
+        const updatedDate = new Date;  
+        OrderAcceptance.update({
+            'supplier':req.body.supplierId,
+            'order':id
+        },
+        {
+            $set:{
+                status:req.body.status,
+                updateDate: updatedDate.toString(),
+            }
+        },
+        {
+            multi: true
+        }
+        )
+        .exec()
+            .then(result => {
+                console.log('result', result);
+            //   Order.update({
+            //     _id: id
+            // }, {
+            //     $set: {
+            //         status: req.body.status,           
+            //         updateDate: updatedDate.toString(),
+            //     }
+                
+            // })
+            // .exec()
+            // .then(data => {
+    
+            // })
+            res.status(200).json({
+                data:result,
+                message:'updated successfully'
+            })
+            })
+    })
+    router.patch('/cancelorder/:orderId',  (req, res, next) => {
+        console.log('bsdasdkajhdasd'+JSON.stringify( req.body));
+        const date = new Date;
+        OrderAcceptance.find({
+            order:req.params.orderId,
+            supplier:req.body.supplierId
+        })
+        .populate('orderDetail')
+        .then(data =>{     
+          if(data[0].partialType =="Complete")
+          {
+            
+            //   let quan =[];
+              OrderDetail.find({"order":req.params.orderId}).then(dd =>{         
+              dd.forEach(element =>{
+               
+                  OrderDetail.updateMany({
+                    "order":req.params.orderId
+                },{$set:{
+                 remainingQuantity:element.orderQuantity
+                }},{
+                    multi:true
+                })
+                .exec()
+                .then(result =>{
+                    console.log(result);           
+                })
+                .catch(err =>{
+                    console.log(err);
+                    res.status(500).json({
+                        error:err,
+                     message:"An error occurred while cancelling an order, can you please try again" 
+              
+                    });
+                })
+              })
+              })
+              Order.update({_id:req.params.orderId},{$set:{
+                  status:"Pending",
+                  updateDate:data.toString()
+              }})
+              .then(abc =>{
+                  console.log(abc);
+              })
+          }
+          else
+          {
+              data.forEach(element =>{            
+                //  odDetail.push(element.orderDetail._id)
+                 OrderDetail.find({"_id":element.orderDetail._id}).then(dd =>{                 
+                    dd.forEach(dt =>{                          
+                       let rem =Number( dt.remainingQuantity + element.takenQuantity)
+                        OrderDetail.update({_id:dt._id},{$set:{
+                            "remainingQuantity":rem
+                        }})
+                        .then(ress =>{
+                          
+                        })
+                    })
+                  
+                  })
+              })
+          }
+        })
+        
+        OrderAcceptance.updateMany({
+            'supplier':req.body.supplierId,
+            'order':req.params.orderId
+        },{
+            $set:{
+                isActive:false,
+                status:"Cancelled",
+                reason:req.body.reason,
+                updateDate:date,
+            }
+        })
+        .exec()
+        .then(result =>{
+                   
+                   res.status(200).json({
+                     result:result,
+                    message:"You have cancelled an order successfully" 
+               });
+               })
+               .catch(err =>{
+                   console.log(err);
+                   res.status(500).json({
+                       error:err,
+                    message:"An error occurred while cancelling an order, can you please try again" 
+             
+                   });
+               })
+    })
     
  module.exports =router;

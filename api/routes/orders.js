@@ -6,7 +6,6 @@ const Kitchen = require('../../env/kitchens.model');
 const generateUniqueId = require('generate-unique-id');
 const OrderDetail = require('../../env/order-details.model');
 const OrderStatus = require('../../env/order-status.model');
-const SupplierRefrance = require('../../env/supplier-ref.model');
 const OrderAcceptance = require('../../env/order-fulfilment.model');
 const OrderDetailSupplier = require('../../env/order-detail-supplier.model');
 const checkAuth = require('../middleware/auth-check')
@@ -108,57 +107,64 @@ router.get('/getopenorders/:categories', (req, res, next) => {
                $match: {
                     "ordersDetails.categories": {$in: new_mng_obj},
                     "orders.status": "Pending",
+                    "orders.isActive":true 
                }
            },
-          {
-               $project:
-                   {
-                     "orders._id"  :1 ,
-                       "orders.orderRefrence":1,
-                       "orders.totalPrice": 1,
-                       "orders.orderQuantity": 1,
-                       "orders.deleviryDate": 1,
-                       "orders.qaDate": 1,
-                       "orders.status": 1,
-                       "orders.orderType": 1,
-                       "_id"  :0 ,
-                       "orders.createdDate":1,
-                   }
-          }
+           {
+            // $group: {
+            //     _id: {
+            //         referenceNumber: "$orders.orderRefrence[0]",
+            //         // status: "$status",
+            //         // "order": "$order",
+            //     },
+            //     orderSize: {
+            //         $sum: 1
+            //     }
+            // }
+            $group: {
+                _id: {                  
+                    "order": "$order",
+                    "_id":"$orders._id",
+                    "orderRefrence":"$orders.orderRefrence",
+                    "totalPrice":"$orders.totalPrice",
+                    "orderQuantity":"$orders.orderQuantity",
+                    "deleviryDate":"$orders.deleviryDate",
+                    "qaDate":"$orders.qaDate",
+                    "status":"$orders.status",
+                    "orderType":"$orders.orderType",
+                    "createdDate":"$orders.createdDate",
+                },
+                orderSize: {
+                    $sum: 1
+                }
+           }
+        }
+        //   {
+        //        $project:
+        //            {
+        //              "orders._id"  :1 ,
+        //                "orders.orderRefrence":1,
+        //                "orders.totalPrice": 1,
+        //                "orders.orderQuantity": 1,
+        //                "orders.deleviryDate": 1,
+        //                "orders.qaDate": 1,
+        //                "orders.status": 1,
+        //                "orders.orderType": 1,
+        //                "_id"  :0 ,
+        //                "orders.createdDate":1,
+        //            }
+        //   }
 
        ])
        .exec()
-       .then(docs => {
+       .then(docs => {        
+       
            res.status(200).json(docs);
        })
 });
-// //Get OpenOrders
-// router.get('/getopenorders', (req, res, next) => {
-//     Order.find({
 
-//             $and: [{
-//                 $or: [{
-//                     status: "Partialy Accepted"
-//                 }, {
-//                     status: "Pending"
-//                 }]
-//             }]
-
-//         })
-
-//         .exec()
-//         .then(docs => {
-//             res.status(200).json(docs);
-//         })
-//         .catch(err => {
-//             console.log(err);
-//             res.status(500).json({
-//                 error: err
-//             });
-//         });
-// });
 //Cancel orders by suppliers
-router.get('/getcancelorders/:supplierId', checkAuth, (req, res, next) => {
+router.get('/getcancelorders/:supplierId',  (req, res, next) => {
      const id = req.params.supplierId
      OrderAcceptance.aggregate([
         {
@@ -174,6 +180,8 @@ router.get('/getcancelorders/:supplierId', checkAuth, (req, res, next) => {
                     referenceNumber: "$referenceNumber",
                     status: "$status",
                     "order": "$order",
+                    "createdDate":"$updateDate",
+                    reason:"$reason"
                 },
                 orderSize: {
                     $sum: 1
@@ -185,23 +193,7 @@ router.get('/getcancelorders/:supplierId', checkAuth, (req, res, next) => {
         console.log(ordr)
         res.status(200).json(ordr)
     })
-    // OrderStatus.find({
-    //         "status": "Cancel",
-    //         "supplier": id
-    //     })
-    //     .populate('order')
-    //     .populate('supplier', 'companyName')
-    //     //.populate('kitchen')
-    //     .exec()
-    //     .then(docs => {
-    //         res.status(200).json(docs);
-    //     })
-    //     .catch(err => {
-    //         console.log(err);
-    //         res.status(500).json({
-    //             error: err
-    //         });
-    //     });
+   
 });
 //Cancel orders by kitchen
 router.get('/getkitchencancelorders/:kitchenId', (req, res, next) => {
@@ -250,225 +242,44 @@ router.get('/getkitchendeleviredorders/:kitchenId', (req, res, next) => {
 
 //Get in progress Orders
 router.get('/getfulfilorders/:supplierId', (req, res, next) => {
-    const id = req.params.supplierId
-    OrderStatus.find({
-            "supplier": id,
-            $and: [{
-                $or: [{
-                    status: "Ready For QA"
-                }, {
-                    status: "QA in progress"
-                }, {
-                    status: "On the way"
-                }, {
-                    status: "Delivered"
-                }]
-            }]
-
-        })
-        .populate('order')
-        // .populate('supplier','companyName')
-        .exec()
-        .then(docs => {
-            OrderDetail.find({
-                    $and: [{
-                        $or: [{
-                            orderDetailStatus: "Ready For QA"
-                        }, {
-                            orderDetailStatus: "QA in progress"
-                        }, {
-                            orderDetailStatus: "On the way"
-                        }, {
-                            orderDetailStatus: "Delivered"
-                        }]
-                    }],
-                    "supplier": id
-                })
-                .populate('order')
-                // .populate('supplier','companyName')
-                .exec()
-                .then(data => {
-                    Order.find({
-                            $and: [{
+    const id = req.params.supplierId;
+    console.log(id)
+    OrderAcceptance.aggregate([
+        {
+            $match: {
+                "supplier": mongoose.Types.ObjectId(id),
+                $and: [{
                                 $or: [{
                                     status: "Ready For QA"
                                 }, {
-                                    status: "QA in progress"
+                                    status: "QA In Progress"
                                 }, {
                                     status: "On the way"
                                 }, {
                                     status: "Delivered"
                                 }]
                             }],
-                            "supplier": id
-                        })
-                        .exec()
-                        .then(ordr => {
-                            OrderDetailSupplier.find({
-                                    $and: [{
-                                        $or: [{
-                                            orderDetailSupplierStatus: "Ready For QA"
-                                        }, {
-                                            orderDetailSupplierStatus: "QA in progress"
-                                        }, {
-                                            orderDetailSupplierStatus: "On the way"
-                                        }, {
-                                            orderDetailSupplierStatus: "Delivered"
-                                        }]
-                                    }],
-
-                                    "supplier": id
-                                })
-                                .select('product orderDetailStatus')
-                                .populate("supplier", "compnayName")
-                                .exec()
-                                .then(ods => {
-                                    console.log(docs)
-                                    var data_array = [];
-                                    var ods_array = [];
-                                    if (data.length > 0) {
-                                        for (let j = 0; j < data.length; j++) {
-
-                                            // if (data[i].order.statuss == null) {
-                                            var OrderDetailsTemp = {
-                                                orderRefrence: data[j].order.orderRefrence,
-                                                status: data[j].order.status,
-                                                orderId: data[j].order._id,
-                                                totalPrice: data[j].order.totalPrice,
-                                                _id: data[j]._id,
-                                                orderQuantity: data[j].orderQuantity,
-                                                product: data[j].product,
-                                                //  status: data[0].status,
-                                                supplier: data[j].supplier,
-                                                isActive: data[j].isActive,
-                                                createdDate: data[j].createdDate,
-
-                                            };
-
-                                            // data_array.push(OrderDetailsTemp);
-                                            //  }
-
-                                            console.log(data_array)
-
-
-                                        }
-
-
-                                    }
-                                    if (ods.length > 0) {
-
-                                        for (let k = 0; k < ods.length; k++) {
-                                            var OrderDetailSupplierTemp = {
-                                                orderRefrence: ods[k].order.orderRefrence,
-                                                status: ods[k].order.status,
-                                                orderId: ods[k].order._id,
-                                                totalPrice: ods[k].order.totalPrice,
-                                                _id: ods[k]._id,
-                                                orderQuantity: ods[k].order.orderQuantity,
-                                                product: ods[k].product,
-                                                supplier: ods[k].supplier,
-                                                isActive: ods[k].isActive,
-                                                createdDate: ods[k].createdDate,
-                                            };
-                                            ods_array.push(OrderDetailSupplierTemp);
-
-                                        }
-
-
-                                        var ob = data_array.concat(ordr);
-                                        ods_array.forEach((element) => {
-                                            ob.push(element)
-                                        })
-                                        // var obj1 = ob.concat(ods_array);
-                                        //  console.log('obj1',obj1)
-                                        //  res.status(200).json(obj1);
-                                        res.status(200).json(ob);
-                                    }
-                                    var obj1 = data.concat(ordr);
-                                    var obj2 = obj1.concat(ods);
-                                    res.status(200).json(obj2);
-                                    // if (docs.length > 0) {
-                                    //     var OrderStatusTemp = [{
-                                    //         orderRefrence: docs[0].order.orderRefrence,
-                                    //         status: docs[0].order.status,
-                                    //         orderId: docs[0].order._id,
-                                    //         totalPrice: docs[0].order.totalPrice,
-                                    //         _id: docs[0]._id,
-                                    //         orderQuantity: docs[0].orderQuantity,
-                                    //         product: docs[0].product,
-                                    //         status: docs[0].status,
-                                    //         supplier: docs[0].supplier,
-                                    //         isActive: docs[0].isActive,
-                                    //         createdDate: docs[0].createdDate,
-
-                                    //     }];
-                                    //     console.log(OrderStatusTemp)
-                                    //     var ob = OrderStatusTemp.concat(data);
-                                    //     var obj1 = ob.concat(ordr);
-                                    //     var obj2 = obj1.concat(ods);
-                                    //     res.status(200).json(obj2);
-
-
-                                    //     // var obj = Object.assign(docs,data,ordr,ods);
-                                    // }
-                                    // if (data.length > 0) {
-                                    //     var OrderDetailsTemp = [{
-                                    //         orderRefrence: data[0].order.orderRefrence,
-                                    //         status: data[0].order.status,
-                                    //         orderId: data[0].order._id,
-                                    //         totalPrice: data[0].order.totalPrice,
-                                    //         _id: data[0]._id,
-                                    //         orderQuantity: data[0].orderQuantity,
-                                    //         product: data[0].product,
-                                    //         status: data[0].status,
-                                    //         supplier: data[0].supplier,
-                                    //         isActive: data[0].isActive,
-                                    //         createdDate: data[0].createdDate,
-
-                                    //     }];
-                                    //     console.log(OrderDetailsTemp)
-                                    //     var ob = OrderDetailsTemp.concat(ordr);
-                                    //     var obj1 = ob.concat(ods);
-                                    //     res.status(200).json(obj1);
-                                    // }
-                                    // if (ods.length > 0) {
-                                    //     var OrderDetailSupplierTemp = [{
-                                    //         orderRefrence: ods[0].order.orderRefrence,
-                                    //         status: ods[0].order.status,
-                                    //         orderId: ods[0].order._id,
-                                    //         totalPrice: ods[0].order.totalPrice,
-                                    //         _id: ods[0]._id,
-                                    //         orderQuantity: ods[0].orderQuantity,
-                                    //         product: ods[0].product,
-                                    //         status: ods[0].status,
-                                    //         supplier: ods[0].supplier,
-                                    //         isActive: ods[0].isActive,
-                                    //         createdDate: ods[0].createdDate,
-
-                                    //     }];
-                                    //     console.log(OrderDetailSupplierTemp)
-                                    //     var ob = OrderDetailSupplierTemp.concat(ordr);
-                                    //     var obj1 = ob.concat(data);
-                                    //     res.status(200).json(obj1);
-                                    // } else {
-                                    //     var obj1 = data.concat(ordr);
-                                    //     var obj2 = obj1.concat(ods);
-                                    //     res.status(200).json(obj2);
-                                    // }
-                                })
-
-                        })
-
-                })
-
-        })
-        .catch(err => {
-            console.log(err);
-            res.status(500).json({
-                error: err
-            });
-        });
-
+                "isActive": true
+            }
+        },
+        {
+            $group: {
+                _id: {
+                    referenceNumber: "$referenceNumber",
+                    status: "$status",
+                    "order": "$order",
+                    "createdDate":"$createdDate"
+                },
+                orderSize: {
+                    $sum: 1
+                }
+            }
+        }
+    ])
+    .then(ordr => {
+        console.log(ordr)
+        res.status(200).json(ordr)
+    })
 });
 router.get('/getinprogressorders/:supplierId', (req, res, next) => {
     const id = req.params.supplierId  
@@ -486,6 +297,7 @@ router.get('/getinprogressorders/:supplierId', (req, res, next) => {
                         referenceNumber: "$referenceNumber",
                         status: "$status",
                         "order": "$order",
+                        "partialType":"$partialType"
                     },
                     orderSize: {
                         $sum: 1
@@ -499,14 +311,23 @@ router.get('/getinprogressorders/:supplierId', (req, res, next) => {
         })
 });
 router.get('/getinprogressummery/:orderId', (req, res, next) => {
-    console.log(req.params.orderId)
+    // console.log('order detail suppmery',JSON.stringify(req.params.orderId))
+     var array = req.params.orderId.split(',')
+   let orderId = array[0];
+   let supplierId  = array[1];
+   console.log('orderid',orderId);
+   console.log('sup',supplierId);
+
     // var count =0;
     // var result;
     OrderAcceptance.find({
-            "order": req.params.orderId
+            "order": orderId,
+              "supplier":supplierId,
+            //  "status":"In Progress"
         })
          .populate('product')
-        // .populate('order')
+         .populate('order')
+         .populate('orderDetail')
         .exec()
         .then(docs => {
             // updateStatus(req,res,next)
@@ -537,6 +358,7 @@ router.get('/orderdetailsummary/:orderId', (req, res, next) => {
 });
 //Get Order details by id 
 router.get('/orderdetails/:orderId', (req, res, next) => {
+  
         OrderDetail.find({
             "order": req.params.orderId,
             "remainingQuantity":{$ne:"0"}
@@ -547,121 +369,9 @@ router.get('/orderdetails/:orderId', (req, res, next) => {
         .then(docs => {
             res.status(200).json(docs);
         })
-
-    // // var count = 0;
-    // let data = {}
-    // let temarray = [];
-    // OrderDetail.find({
-    //         "order": req.params.orderId
-    //     })
-    //     .populate('product')
-    //     .populate('order')
-
-    //     .then(docs => {
-    //         data = docs
-    //         console.log(data);
-    //         var allTrue = Object.keys(data).every(function (k) {
-    //             return data[k].orderDetailStatus === 'In Progress'
-    //         });
-
-    //         if (allTrue) {
-
-    //             // data.forEach(element => {
-    //             //     element.orderQuantity =0;
-    //             // }); 
-    //             console.log(data[0].order._id)
-    //             Order.update({
-    //                     _id: data[0].order._id
-    //                 }, {
-    //                     $set: {
-    //                         status: "In Progress",
-
-    //                     }
-    //                 })
-    //                 .then(result => {
-
-    //                 })
-    //             // return res.status(200).json(data)
-    //         }
-
-    //     }).then(abc => {
-
-    //         // data.forEach(element => {
-    //         //     console.log('element',element.supplier)
-    //         //         if (element.supplier != null) 
-    //         //   {
-    //         //     data[element].orderQuantity =0;
-
-    //         //   }
-    //         //   else
-    //         //   {
-    //         //       console.log('null');
-
-    //         //   }
-    //         //   }); 
-
-
-
-    //         let ids = [];
-    //         for (let i = 0; i < data.length; i++) {
-
-    //             // console.log('element', data[i].supplier)
-    //             if (data[i].supplier !== null) {
-    //                 data[i].orderQuantity = 0;
-
-    //             } else {
-    //                 ids.push({
-    //                     orderDetailId: data[i]._id,
-    //                     productId: data[i].product._id
-    //                 })
-    //             }
-
-    //         }
-    //         console.log('------------------------------')
-    //         console.log(ids)
-    //         console.log('-----------------------------------------')
-    //         if (ids.length) {
-    //             let orderDetailIDs = [];
-    //             let orderProductIDs = [];
-    //             for (var i = 0; i < ids.length; ++i) {
-    //                 orderDetailIDs.push(ids[i].orderDetailId);
-    //                 orderProductIDs.push(ids[i].productId);
-    //             }
-
-    //             // for (var i = 0; i < ids.length; ++i) {
-    //             //     orderProductIDs.push(ids[i].productId);
-    //             // }
-
-    //             OrderDetailSupplier.find({
-    //                 product: orderProductIDs,
-    //                 orderDetail: orderDetailIDs
-    //             }).then(result => {
-    //                 console.log(result)
-    //                 data.map(item => {
-    //                     result.map(res2 => {
-
-    //                         if (item.product._id.toString() === res2.product.toString() && item._id.toString() === res2.orderDetail.toString()) {
-    //                             item.orderQuantity = Number(item.orderQuantity) - Number(res2.quantity);
-    //                         }
-    //                     })
-    //                 })
-
-    //                 //console.log('1st', data)
-    //                 return res.status(200).json(data);
-    //             })
-
-    //         } else {
-    //             // console.log('2nd', data)
-    //             return res.status(200).json(data);
-    //         }
-
-    //     })
-    //     .catch(err => {
-    //         console.log(err);
-    //         res.status(500).json({
-    //             error: err
-    //         });
-    //     });
+        .catch(err =>{
+            res.status(500).json(err)
+        });
 });
 
 //Post Request To Add Orders data in collection
@@ -763,8 +473,11 @@ router.get('getorderbyid/:orderId', checkAuth, (req, res, next) => {
         });
 });
 
-router.post('/accepteorder', (req, res, next) => {
-
+router.post('/acceptorder', (req, res, next) => {
+    console.log('==============================')
+    console.log('accept order',req.body)
+    console.log('==============================')
+    // console.log(req.body[0]._orderDetails)
     const updatedDate = new Date;
     const date = new Date;
     const refNumber = 'SUP-' + generateUniqueId({
@@ -787,16 +500,16 @@ router.post('/accepteorder', (req, res, next) => {
         }
         OrderDetail.updateMany(tempdata, {
                 $set: {
-                    remainingQuantity: "0",
+                    remainingQuantity: 0,
                     updatedDate: updatedDate.toString(),
                 }
             }, {
                 multi: true
             }).exec()
             .then(details => {
-                console.log('==============================================')
-                console.log('orderId',req.body._orderDetails[0].orderId)
-                console.log('=============================================')
+                // console.log('==============================================')
+                // console.log('orderId',req.body._orderDetails[0].orderId)
+                // console.log('=============================================')
 
                 Order.update({_id:req.body._orderDetails[0].orderId},{$set:{
                     status:"In Progress",                   
@@ -809,6 +522,32 @@ router.post('/accepteorder', (req, res, next) => {
             })
     }
     if (req.body._orderDetails[0].partialType == "Partial") {
+
+        let dataa = [];
+        req.body._orderDetails.forEach(element => {
+
+            dataa.push({
+                orderDetailId: element.orderDetailId,
+                remainingQuantity: element.orderQuantity - element.takenQuantity
+            })
+
+
+        })
+        let orderDetailIds = [];
+        dataa.forEach(element => {
+            OrderDetail.update({
+                    _id: element.orderDetailId
+                }, {
+                    $set: {
+                        remainingQuantity: element.remainingQuantity,
+                        updatedDate: updatedDate.toString(),
+                    }
+                })
+                .then(details => {})
+
+        })
+    }
+    if (req.body._orderDetails[0].partialType == "SubPartial") {
 
         let dataa = [];
         req.body._orderDetails.forEach(element => {
@@ -876,7 +615,8 @@ router.post('/accepteorder', (req, res, next) => {
 //patch request if supplier fulfill  order
 router.patch('/updatestatusbysup/:orderId', (req, res, next) => {
     console.log(req.body.supplierId)
-    const id = req.params.orderId
+     const id = req.params.orderId
+    console.log(req.params.orderId)
     const updatedDate = new Date;  
     OrderAcceptance.update({
         'supplier':req.body.supplierId,
@@ -910,60 +650,103 @@ router.patch('/updatestatusbysup/:orderId', (req, res, next) => {
         })
         res.status(200).json({
             data:result,
-            message:'updated successfully'
+            message:'You have successfully chenged the status'
         })
         })
 })
 //patch request if supplier cancel  order
-router.patch('/cancelorder/:orderId', checkAuth, (req, res, next) => {
-    //console.log('bsdasdkajhdasd'+JSON.stringify(req.body))
-    const id = req.params.orderId;
+router.patch('/cancelorder/:orderId',  (req, res, next) => {
+    console.log('bsdasdkajhdasd'+JSON.stringify( req.body));
     const date = new Date;
-    const orderstatus = new OrderStatus({
-        _id: mongoose.Types.ObjectId(),
-        order: id,
-        supplier: req.body.supplierId,
-        createdDate: date.toString(),
-        updateDate: date.toString(),
-        status: "Cancel",
-        reason: req.body.reason
-    });
-    orderstatus.save().then(result => {
-        console.log({
-            result: result,
-        });
-
-    }).catch(err => {
-        console.log(err);
-        res.status(500).json({
-            error: err
-        })
-    });
-    const updatedDate = new Date;
-    Order.update({
-            _id: id
-        }, {
-            $set: {
-                status: "Pending",
-                supplier: null,
-                updateDate: updatedDate.toString(),
-            }
-        })
-        .exec()
-        .then(result => {
-            console.log('result', result);
-            res.status(200).json({
-                result: result,
-                message: "You have canceled the order successfully "
-            });
-        })
-        .catch(err => {
-            console.log(err);
-            res.status(500).json({
-                error: err,
-                message: 'Error on canceling the order'
-            });
-        })
+    OrderAcceptance.find({
+        order:req.params.orderId,
+        supplier:req.body.supplierId
+    })
+    .populate('orderDetail')
+    .then(data =>{     
+      if(data[0].partialType =="Complete")
+      {
+          console.log('in if condition')
+        //   let quan =[];
+          OrderDetail.find({"order":req.params.orderId}).then(dd =>{         
+          dd.forEach(element =>{
+           
+              OrderDetail.updateMany({
+                "order":req.params.orderId
+            },{$set:{
+             remainingQuantity:element.orderQuantity
+            }},{
+                multi:true
+            })
+            .exec()
+            .then(result =>{
+                console.log(result);           
+            })
+            .catch(err =>{
+                console.log(err);
+                res.status(500).json({
+                    error:err,
+                 message:"An error occurred while cancelling an order, can you please try again" 
+          
+                });
+            })
+          })
+          })
+          Order.update({_id:req.params.orderId},{$set:{
+              status:"Pending",
+              updateDate:data.toString()
+          }})
+          .then(abc =>{
+              console.log(abc);
+          })
+      }
+      else
+      {
+          data.forEach(element =>{            
+            //  odDetail.push(element.orderDetail._id)
+             OrderDetail.find({"_id":element.orderDetail._id}).then(dd =>{                 
+                dd.forEach(dt =>{                          
+                   let rem =Number( dt.remainingQuantity + element.takenQuantity)
+                    OrderDetail.update({_id:dt._id},{$set:{
+                        "remainingQuantity":rem
+                    }})
+                    .then(ress =>{
+                      
+                    })
+                })
+              
+              })
+          })
+      }
+    })
+    
+    OrderAcceptance.updateMany({
+        'supplier':req.body.supplierId,
+        'order':req.params.orderId
+    },{
+        $set:{
+            isActive:false,
+            status:"Cancelled",
+            reason:req.body.reason,
+            updateDate:date,
+        }
+    })
+    .exec()
+    .then(result =>{
+               
+               res.status(200).json({
+                 result:result,
+                message:"You have cancelled an order successfully" 
+           });
+           })
+           .catch(err =>{
+               console.log(err);
+               res.status(500).json({
+                   error:err,
+                message:"An error occurred while cancelling an order, can you please try again" 
+         
+               });
+           })
 })
 //patch request if kitchen cancel  order
 router.patch('/cancelkitchenorder/:orderId', checkAuth, (req, res, next) => {

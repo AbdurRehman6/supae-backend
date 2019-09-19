@@ -11,7 +11,7 @@ module.exports =(req,res,next) =>{
     catch(ex)
     {
     return res.status(401).json({
-        message:"Auth Fail"
+        message:"Your session has expired, please login again"
     })
     }
 };

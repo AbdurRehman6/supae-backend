@@ -13,10 +13,12 @@ const checkAuth = require('../middleware/auth-check')
 const Order = require('../../env/orders.model')
 const OrderDetail = require('../../env/order-details.model');
 const Products = require('../../env/product.model');
+const SupplyItems = require('../../env/supplier-supplyitems.model');
+
 
 //Get All date using Get request from Kitchen Collection
 router.get('/getkitchens',(req,res,next) =>{  
-    Kitchen.find({userType:'kitchen'}) 
+    Kitchen.find({}) 
     .select('kitchenName type user createdDate')   
     .populate('user','address phone email status userType')
     .sort({ createdDate: -1 })
@@ -25,7 +27,27 @@ router.get('/getkitchens',(req,res,next) =>{
         res.status(200).json(docs); 
     })
     .catch(err =>{
-        console.log(err);
+      
+        res.status(500).json({
+            error:err
+        });
+    });
+});
+
+router.get('/getsupplyitem/:supplierId',(req,res,next) => {   
+
+    const id = req.params.supplierId;  
+     
+    SupplyItems.find({      
+        supplier:id 
+    })
+    // .select('categoryName categoryImage  createdDate')   
+     .populate('categories')
+    .exec()
+    .then(docs =>{      
+         res.status(200).json(docs)
+    })
+    .catch(err =>{     
         res.status(500).json({
             error:err
         });
@@ -33,7 +55,7 @@ router.get('/getkitchens',(req,res,next) =>{
 });
 
 router.get('/getfrequentorders/:kitchenId', (req, res, next) => {
-    // console.log(kitchenId)
+  
     const id = req.params.kitchenId;
     let data = {}
     Order.find({
@@ -44,55 +66,62 @@ router.get('/getfrequentorders/:kitchenId', (req, res, next) => {
         //.populate('kitchen')
         .exec()
         .then(docs => {
+          
            // res.status(200).json(docs);
            data = docs 
         })
-        .then(abc => {
+        .then(abc => {  
             let ids = [];
             var duplicates ;
-            for (let i = 0; i < data.length; i++) {             
+            for (let i = 0; i <= data.length -1; i++) {             
                 ids.push({
                     orderId:data[i]._id
                 })
             }
-           
-            OrderDetail.find({Order:ids.orderId}).then(result => { 
-           
+            let searchids =[]
+            ids.forEach(element => {
+                searchids.push(element.orderId)
+               
+            });
+      
+            if(ids.length > 0){
+            OrderDetail.find({order:searchids}).then(result => { 
+                // console.log('-------------------------------------------')
+                // console.log('result',result);
+                // console.log('-------------------------------------------')
 
                 const uniq = new Set(result.map(e => JSON.stringify(e.product)));
                 const ress = Array.from(uniq).map(e => JSON.parse(e));
                 Products.find({_id:ress})
                 .populate('categories','categoryName')
                 .then(response => { 
-          
-                    const unique = new Set(response.map(e => JSON.stringify(e.categories.categoryName,e.categories._id)));
-                    
-                    const resss = Array.from(unique).map(e => JSON.parse(e));
-                                // var filtered = response.filter(function({categoryName, _id}) {
-                                //     var key = `${categoryName}${_id}`;
-                                //     return !this.has(key) && this.add(key);
-                                // }, new Set);
-                                
-                               
-                                // console.log('======================') 
-                                // console.log(filtered);
-                              
-                                //  console.log('======================')
+                                        const result = [];
+                    const map = new Map();
+                    for (const item of response) {
+                        if(!map.has(item.categories._id)){
+                            map.set(item.categories._id, true);    // set any value to Map
+                            result.push({
+                                id: item.categories._id,
+                                name: item.categories.categoryName
+                            });
+                        }
+                    }        
                   res.status(200).json({
                       products:response,
                      category:                        
-                         resss,
+                         result,
                      
                     });
                 })
-               
-                 
-              
             })
-
+        }
+        else
+        {
+            res.status(200).json(data)
+        }
         })
         .catch(err => {
-            console.log(err);
+         
             res.status(500).json({
                 error: err
             });
@@ -110,14 +139,14 @@ router.get('/getsuppliers',(req,res,next) =>{
         res.status(200).json(docs); 
     })
     .catch(err =>{
-        console.log(err);
+      
         res.status(500).json({
             error:err
         });
     });
 });
 router.post('/kitchensignup',(req,res,next) => {  
-    console.log(req.body)
+ 
 let _status =false;
 
     const date = new Date;  
@@ -128,7 +157,7 @@ let _status =false;
         {  
                   
             return res.status(200).json({
-                message:'email already exists'
+                message:'Your email already exists, please sign in'
             })
        }
        else
@@ -177,19 +206,17 @@ let _status =false;
     
                                     res.status(201).json({
                                         kitchencreated:docs,
-                                        message:"Kitchen created Succefully"
+                                        message:"You have successfully created the kitchen"
                                     })
                                 })
-                                .catch(err =>{
-                                    console.log(err);
+                                .catch(err =>{                                 
                                     res.status(500).json({
                                         error:err
                                     })
                                 });
                             }                   
                         })
-                        .catch(err =>{
-                            console.log(err);
+                        .catch(err =>{                          
                             res.status(500).json({
                                 error:err
                             })
@@ -226,20 +253,20 @@ let _status =false;
                                 .then(docs =>{  
     
                                     res.status(201).json({
-                                        kitchencreated:docs
+                                        kitchencreated:docs,
+                                        message:"Congratulations! You have successfully signed up for the kitchen"
+
                                     })
                                       sendEmail(req.body.user.email);    
                                 })
-                                .catch(err =>{
-                                    console.log(err);
+                                .catch(err =>{                                 
                                     res.status(500).json({
                                         error:err
                                     })
                                 });
                             }                   
                         })
-                        .catch(err =>{
-                            console.log(err);
+                        .catch(err =>{                           
                             res.status(500).json({
                                 error:err
 
@@ -258,7 +285,7 @@ let _status =false;
 
 //Post Request To Add Kitchen data in collection
 router.post('/signup',(req,res,next) => {  
-    console.log(req.body)
+ console.log(req.body)
   const date = new Date;  
     User.find({email:req.body.user.email})    
     .exec()
@@ -306,24 +333,36 @@ router.post('/signup',(req,res,next) => {
                                 _id:mongoose.Types.ObjectId(),
                                 fullName:req.body.supplier.fullName,
                                 companyName:req.body.supplier.companyName,
-                                trnNumber:req.body.supplier.trnNumber,
-                                supplyItem:req.body.supplier.supplyItem,
+                                trnNumber:req.body.supplier.trnNumber,                              
                                 createdDate:date.toString(),
                                 updateDate:date.toString(),
                                 user:result._id,
 
                             });
                             supplier.save()
-                            .then(docs =>{      
-                                sendEmailUser(req.body.user.email)                          
+                            .then(docs =>{   
+                                req.body.supplyItem.forEach(element => {                                  
+                                      const supplyItems1 = new SupplyItems({
+                                        _id: mongoose.Types.ObjectId(),
+                                        categories:element.categoryId,
+                                        supplier : docs._id,
+                                        createdDate: date.toString(),
+                                        updatedDate: date.toString()
+                    
+                                    });
+                                    supplyItems1.save()
+                                    .then(data =>{
+                                     
+                                    })                                  
+                               });                              
                                 res.status(201).json({
-                                    supplierCreated:docs,
+                                  
                                     message:"Congratulations! You have successfully signed up for the supplier portal"
-                                })
-                               
-                            })
+                                })   
+                               sendEmailUser(req.body.user.email)  
+                            })                           
                             .catch(err =>{
-                                console.log(err);
+                             
                                 res.status(500).json({
                                     error:err
                                 })
@@ -331,7 +370,7 @@ router.post('/signup',(req,res,next) => {
                         }
                     })
                     .catch(err =>{
-                        console.log(err);
+                       
                         res.status(500).json({
                             error:err
                         })
@@ -364,7 +403,7 @@ router.post('/signup',(req,res,next) => {
                                 fullName:req.body.supplier.fullName,
                                 companyName:req.body.supplier.companyName,
                                 trnNumber:req.body.supplier.trnNumber,
-                                supplyItem:req.body.supplier.supplyItem,
+                                // supplyItem:req.body.supplier.supplyItem,
                                 createdDate:date.toString(),
                                 updateDate:date.toString(),
                                 user:result._id,
@@ -372,22 +411,33 @@ router.post('/signup',(req,res,next) => {
                             });
                             supplier.save()
                             .then(docs =>{
-                                sendEmail(req.body.user.email)                                
-                                res.status(201).json({
-                                    supplierCreated:docs,
-                                    message:"Congratulations! You have successfully signed up for the supplier portal"
-                                })
-                            })
-                            .catch(err =>{
-                                console.log(err);
+                                req.body.supplyItem.forEach(element => {                                  
+                                    const supplyItems1 = new SupplyItems({
+                                      _id: mongoose.Types.ObjectId(),
+                                      categories:element.categoryId,
+                                      supplier : docs._id,
+                                      createdDate: date.toString(),
+                                      updatedDate: date.toString()
+                  
+                                  });
+                                  supplyItems1.save()
+                                  .then(data =>{                                    
+                                  })                                  
+                             });                              
+                              res.status(201).json({
+                                
+                                  message:"Congratulations! You have successfully signed up for the supplier portal"
+                              })   
+                             sendEmailUser(req.body.user.email)  
+                          }) 
+                            .catch(err =>{                             
                                 res.status(500).json({
                                     error:err
                                 })
                             });
                         }
                     })
-                    .catch(err =>{
-                        console.log(err);
+                    .catch(err =>{                      
                         res.status(500).json({
                             error:err
                         })
@@ -405,9 +455,9 @@ router.post('/signup',(req,res,next) => {
 });
 
 // Get Supplier Data from supplier collection based on id
-router.get('/getsupplierbyid/:supplierId',checkAuth,(req,res,next) =>{   
+router.get('/getsupplierbyid/:supplierId',(req,res,next) =>{   
     const id = req.params.supplierId
-    Supplier.findById(id)
+    Supplier.find({_id:id})
     .sort([['createdDate', -1]])
     .select('companyName trnNumber supplyItem fullName phone')   
     .populate('user','email address')
@@ -415,7 +465,45 @@ router.get('/getsupplierbyid/:supplierId',checkAuth,(req,res,next) =>{
     .then(doc =>{
        if(doc)
        {
-         res.status(200).json(doc);
+           
+           SupplyItems.find({supplier:id})
+           .populate('categories')
+           .then(data =>{
+            let supplyItem_array =[];
+            let sup ;
+            for (let j = 0; j < data.length; j++) {              
+             let supplyItem ={
+                _id:data[j].categories._id,
+                  categoryName:data[j].categories.categoryName,
+            };
+            // supplyItem1 = supplyItem[j] 
+            supplyItem_array.push(supplyItem);  
+            }
+          console.log(supplyItem_array)
+            for (let i = 0; i < doc.length; i++) {  
+                if (doc[i].fullName == null) {
+                    doc[i].fullName ="";
+                }          
+               sup ={
+                  _id:doc[i]._id,
+                  companyName:doc[i].companyName,
+                  trnNumber:doc[i].trnNumber,
+                  email:doc[i].user.email,
+                  address:doc[i].user.address,                 
+                  fullName:doc[i].fullName,
+              };
+            //   sup_array.push(sup);
+            
+            }
+            // console.log(sup)
+            //  var ob = sup.concat(supplyItem);
+                res.status(200).json({
+                    supplyItems:supplyItem_array,
+                    user:sup
+                });
+           })
+           
+       
        }
        else
        {
@@ -425,7 +513,7 @@ router.get('/getsupplierbyid/:supplierId',checkAuth,(req,res,next) =>{
        }
     })
     .catch(err =>{
-        console.log(err);
+     
         res.status(500).json({})
     });
     });
@@ -450,20 +538,17 @@ router.get('/getsupplierbyid/:supplierId',checkAuth,(req,res,next) =>{
               });
           }
        })
-       .catch(err =>{
-           console.log(err);
+       .catch(err =>{        
            res.status(500).json({})
        });
     });
 
     //update Kitchen Data against KitchenId
-    router.patch('/updatekitchen/:kitchenId',checkAuth,(req,res,next) =>{ 
+    router.patch('/updatekitchen/:kitchenId',checkAuth,(req,res,next) =>{       
         const id = req.params.kitchenId;        
         const updatedDate = new Date; 
         if (req.body.user.updatedBy =="admin") 
         {
-       console.log(req.body)
-             
       Kitchen.update({_id:id},{$set:{
           kitchenName:req.body.kitchen.kitchenName,
           type:req.body.kitchen.type,         
@@ -474,18 +559,7 @@ router.get('/getsupplierbyid/:supplierId',checkAuth,(req,res,next) =>{
         Kitchen.findById(id)
         .select('user')
         .exec()
-        .then(docs =>{  
-            bcrypt.hash(req.body.user.password,null,null,(err,hash) =>{
-                if(err)
-                {
-                    return res.status(500).json({
-                        error:err,                      
-
-                    })
-                }
-                else
-                {} 
-            })        
+        .then(docs =>{            
             User.update({_id:docs.user},{$set:{
                 status:req.body.user.status,
                 phone:req.body.user.phone,
@@ -493,28 +567,24 @@ router.get('/getsupplierbyid/:supplierId',checkAuth,(req,res,next) =>{
 
             }})
             .exec()
-            .then(rst =>{
-                console.log('rst',rst);
+            .then(rst =>{              
                 sendEmailUser(req.body.user.email)
                 res.status(200).json(rst);
             })
         })
         .catch(
-            err =>{
-                console.log(err);
+            err =>{               
                 res.status(500).json({
                     error:err
                 });
-            });
-          console.log(result);
+            });        
           res.status(200).json(
               {
                   result:result,
                  message:"Kitchen updated successfully" 
             });
       })
-      .catch(err =>{
-          console.log(err);
+      .catch(err =>{       
           res.status(500).json({
               error:err,
               message:'there is an error on updating a kitchen'
@@ -523,57 +593,72 @@ router.get('/getsupplierbyid/:supplierId',checkAuth,(req,res,next) =>{
     }
     else
     {
-        Kitchen.update({_id:id},{$set:{
-            kitchenName:req.body.kitchen.kitchenName,
-            type:req.body.kitchen.type,         
-            updateDate:updatedDate.toString(),       
-          }})
-        .exec()
-        .then(result =>{
-          Kitchen.findById(id)
-          .select('user')
-          .exec()
-          .then(docs =>{           
-              User.update({_id:docs.user},{$set:{
-                  //status:req.body.user.status,
-                  phone:req.body.user.phone,
-                  address:req.body.user.address
-  
-              }})
-              .exec()
-              .then(rst =>{
-                  console.log('rst',rst);
-                  res.status(200).json(rst);
-              })
-          })
-          .catch(
-              err =>{
-                  console.log(err);
-                  res.status(500).json({
-                      error:err
-                  });
-              });
-            console.log(result);
-            res.status(200).json( {
-                result:result,
-               message:"Kitchen updated successfully" 
-          });
-        })
-        .catch(err =>{
-            console.log(err);
-            res.status(500).json({
-                error:err,
-              message:'there is an error on updating a kitchen'
+        bcrypt.hash(req.body.user.password,null,null,(err,hash) =>{
 
-            });
-        })
+            if(err)
+            {
+                return res.status(500).json({
+                    error:err,                      
+
+                })
+            }
+            else
+            {
+                Kitchen.update({_id:id},{$set:{
+                    kitchenName:req.body.kitchen.kitchenName,
+                    type:req.body.kitchen.type,         
+                    updateDate:updatedDate.toString(),       
+                  }})
+                .exec()
+                .then(result =>{
+                  Kitchen.findById(id)
+                  .select('user')
+                  .exec()
+                  .then(docs =>{           
+                      User.update({_id:docs.user},{$set:{
+                          //status:req.body.user.status,
+                          phone:req.body.user.phone,
+                          address:req.body.user.address,
+                          password:hash
+          
+                      }})
+                      .exec()
+                      .then(rst =>{                       
+                          res.status(200).json(rst);
+                      })
+                  })
+                  .catch(
+                      err =>{                      
+                          res.status(500).json({
+                              error:err
+                          });
+                      });
+                    console.log(result);
+                    res.status(200).json( {
+                        result:result,
+                       message:"Kitchen updated successfully" 
+                  });
+                })
+                .catch(err =>{
+                    console.log(err);
+                    res.status(500).json({
+                        error:err,
+                      message:'there is an error on updating a kitchen'
+        
+                    });
+                })
+            } 
+        })        
+     
     }
     });
 
      //update Supplier Data against KitchenId
      router.patch('/updatesupplier/:supplierId',checkAuth,(req,res,next) =>{  
-      //   console.log(req.body.user)
-        const id = req.params.supplierId;        
+         
+         console.log(req.body)
+        const id = req.params.supplierId;
+        const date = new Date;           
         const updatedDate = new Date;   
         if (req.body.user.updatedBy =="admin") 
         {
@@ -604,6 +689,59 @@ router.get('/getsupplierbyid/:supplierId',checkAuth,(req,res,next) =>{
                         console.log('rst',rst);
                         res.status(200).json(rst);
                     })
+                })
+                .then(abc =>{
+                    // SupplyItems.remove({supplier:id})
+                    // .exec()
+                    // .then(result =>{
+                    //   console.log('result',result)
+                    //   console.log('=========================')
+                    //     console.log(req.body.supplyItem.newSupplyItem)
+                    //     console.log('=========================')
+                    if(req.body.supplyItem.newSupplyItem.length > 0)
+                    {
+
+                        req.body.supplyItem.newSupplyItem.forEach(element =>{
+                            const supItems = new SupplyItems({
+                                          _id: mongoose.Types.ObjectId(),
+                                          categories:element.categoryId,
+                                          supplier : id,
+                                          createdDate: date.toString(),
+                                          updatedDate: date.toString()
+                      
+                                      });
+                                      supItems.save()
+                                      .then(data =>{
+                                          console.log(data)
+                                      })
+                        })
+                     
+                    }
+                    // console.log('=========================')
+                    // console.log(req.body.supplyItem.oldSupplyItem)
+                    // console.log('=========================')
+                    if(req.body.supplyItem.oldSupplyItem.length > 0)
+                    {
+                      
+                        let delIds = []
+                        req.body.supplyItem.oldSupplyItem.forEach(element =>{
+                          
+                            delIds.push(element.categoryId)
+                        })
+                        // let tempdata = {
+                        //     categories: {
+                        //         $in: delIds.toString().split(',')
+                        //     }                            
+                        // }
+                        // console.log('=========================')
+                        // console.log(tempdata)
+                        // console.log('=========================')
+                        SupplyItems.deleteMany({categories:delIds})
+                        .exec()
+                        .then(result =>{
+                            console.log(result);
+                        })
+                    }
                 })
                 .catch(
                     err =>{
@@ -651,10 +789,66 @@ router.get('/getsupplierbyid/:supplierId',checkAuth,(req,res,next) =>{
             }})
             .exec()
             .then(rst =>{
-                console.log('rst',rst);
-                res.status(200).json(rst);
+                console.log('rst',rst);              
+                    // console.log('==========================================')
+                    //    console.log('supplyItem',req.body.supplyItem.newSupplyItem)
+                    //    console.log('========================================================')
+               if(req.body.supplyItem.newSupplyItem.length > 0)
+               {
+
+                   req.body.supplyItem.newSupplyItem.forEach(element =>{
+                       const supItems = new SupplyItems({
+                                     _id: mongoose.Types.ObjectId(),
+                                     categories:element.categoryId,
+                                     supplier : id,
+                                     createdDate: date.toString(),
+                                     updatedDate: date.toString()
+                 
+                                 });
+                                 supItems.save()
+                                 .then(data =>{
+                                     console.log(data)
+                                 })
+                   })
+                
+               }
+            //    console.log('=========================')
+            //    console.log(req.body.supplyItem.oldSupplyItem)
+            //    console.log('=========================')
+               if(req.body.supplyItem.oldSupplyItem.length > 0)
+               {
+                   let delIds = []
+                   req.body.supplyItem.oldSupplyItem.forEach(element =>{
+                     
+                       delIds.push(element.categoryId)
+                   })
+                   SupplyItems.deleteMany({categories:delIds})
+                   .exec()
+                   .then(result =>{
+                       console.log(result);
+                   })
+               }         
+                // res.status(200).json(rst);
             })
+           
         })
+        // .then(pqr =>{
+        //     for (let i = 0; i < req.body.supplyItem.length; i++)
+        //     {
+        //        SupplyItems.update({
+        //            supplier: id
+        //        }, {
+        //            $set: {
+        //                categories:req.body.supplyItem[i].categoryId,
+        //                updateDate: updatedDate.toString(),
+        //            }
+        //        })
+
+        //        .then(result => {
+
+        //        })
+        //     }
+        // })
         .catch(
             err =>{
                 console.log(err);
@@ -722,14 +916,14 @@ router.get('/getsupplierbyid/:supplierId',checkAuth,(req,res,next) =>{
      
          User.find({email:req.body.email,status:'true'})
          .exec()
-         .then(users =>{
-             console.log( users.status)
+         .then(users =>{          
              if(users.length < 1)
              {
                  return res.status(200).json({
                      message:"The email provided does not exist"
                  })
-             }            
+             }  
+
              bcrypt.compare(req.body.password,users[0].password,(err,result) =>{
                  if(err)
                  {                    
@@ -739,6 +933,36 @@ router.get('/getsupplierbyid/:supplierId',checkAuth,(req,res,next) =>{
                  }
                  if(result)
                  {
+                    Supplier.find({user:users[0]._id})
+                    .exec()
+                    .then(sup =>{
+                        var catids =[];
+                   //    console.log(supplierID)                
+                  SupplyItems.find({supplier:sup[0]._id})
+                  .then(elementsupitem =>{
+                 
+
+                    elementsupitem.forEach(element => {
+                        console.log('categoryid',element.categories)
+                        catids.push(element.categories);
+                     });
+                     res.status(200).json({
+                        message:'You have logged in successfully',
+                        isAuthenticated:true,
+                        userId:users[0]._id,
+                        supplierId: sup[0]._id,                        
+                        token:token, 
+                        categories:catids                     
+                       
+                    });  
+                  })
+            
+                    }) 
+                    .catch(errr =>{
+                       res.status(500).json({
+                           error:errr
+                       });
+                   }); 
                    
                        token = jwt.sign({
                          email:users[0].email,
@@ -753,26 +977,7 @@ router.get('/getsupplierbyid/:supplierId',checkAuth,(req,res,next) =>{
                      )  
                      const date = new Date;
                     // getSupplier(token,users,res,req,next);                 
-                     Supplier.find({user:users[0]._id})
-                             .exec()
-                             .then(sup =>{
-                             
-                            //    console.log(supplierID)
-                           console.log(sup[0]._id)
-                     res.status(200).json({
-                         message:'You have logged in successfully',
-                         isAuthenticated:true,
-                         userId:users[0]._id,
-                         supplierId: sup[0]._id,                        
-                         token:token,                      
-                        
-                     });  
-                             }) 
-                             .catch(errr =>{
-                                res.status(500).json({
-                                    error:errr
-                                });
-                            }); 
+                  
                    
                      const addSession = Sessions({
                       _id:mongoose.Types.ObjectId(),
@@ -853,7 +1058,7 @@ router.get('/getsupplierbyid/:supplierId',checkAuth,(req,res,next) =>{
                             console.log(kit)
                       res.status(200).json({
                          isAuthenticated:true,
-                          message:'You have logged in successfullyy',
+                          message:'You have logged in successfully',
                           userId:users[0]._id,
                           kitchenId:kit[0]._id,                        
                           token:token,                      
@@ -945,11 +1150,13 @@ router.get('/getsupplierbyid/:supplierId',checkAuth,(req,res,next) =>{
                
               Supplier.remove({_id:id})              
               .then(result =>{
-                return res.status(200).json( {
+              })
+              .then(abc =>{
+                  SupplyItems.remove({supplier:id})
+                  return res.status(200).json( {
                     result:result,
                    message:"You have successfully deleted the supplier" 
               })
-
               })
             })
 
@@ -1018,7 +1225,7 @@ router.get('/getsupplierbyid/:supplierId',checkAuth,(req,res,next) =>{
       var mailOptions = {       
         to: 'ww.abdurrehman@gmail.com',
         subject: 'User Authantication',
-        text: "Dear admin the"+ email + " want to signup your site"
+        text: "Dear admin the "+ email + " want to signup your site"
       };
       transporter.sendMail(mailOptions, function(error, info){
         if (error) {
@@ -1046,7 +1253,7 @@ router.get('/getsupplierbyid/:supplierId',checkAuth,(req,res,next) =>{
             var mailOptions = {       
               to: email,
               subject: 'Account approved',
-              text: "Dear"+ email + ",your account has been approved successfully"
+              text: "Dear "+ email + ",your account has been approved successfully"
             };
             transporter.sendMail(mailOptions, function(error, info){
               if (error) {

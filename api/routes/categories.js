@@ -57,6 +57,30 @@ router.get('/getparentcategories/:categoryId',(req,res,next) => {
     });
 });
 
+router.get('/getcat/:categoryId',(req,res,next) => {   
+    const id = req.params.categoryId; 
+  
+    Categories.find({
+         parentId: { $nin: null},
+         _id:id 
+       
+    })
+    .sort({ createdDate: -1 })
+    // .select('categoryName categoryImage  createdDate')   
+     .populate('parentId','categoryName')
+    .exec()
+    .then(docs =>{
+        console.log(docs);
+         res.status(200).json(docs)
+    })
+    .catch(err =>{
+        console.log(err);
+        res.status(500).json({
+            error:err
+        });
+    });
+});
+
 //Get All date using Get request from Categories Collection
 router.get('/getcategories',(req,res,next) => {     
     Categories.find({
@@ -274,4 +298,39 @@ else{
       })
   });
  });
+ router.get('/getall parent/:catId',(req,res,next) =>{
+    const id = req.params.catId;
+    addToPath(id)
+    // Categories.findById(id)
+    // .exec()
+    // .then(doc =>{
+    //    if(doc)
+    //    {
+    //      res.status(200).json(doc);
+    //    }
+    //    else
+    //    {
+    //        res.status(404).json({
+    //            message:"no valid entry found against this id"
+    //        });
+    //    }
+    // })
+    // .catch(err =>{
+    //     console.log(err);
+    //     res.status(500).json({})
+    // });
+ });
+ function addToPath(id) {
+    var path=[];
+    Categories.findOne({_id:id}, function (err, item) {
+      if (err) {
+          return callback(err);
+      }
+      path.push(item._id);
+      if (item.categoryName !== null) {
+          addToPath(item.categoryName);
+      }
+    });
+    console.log(path);
+}
 module.exports =router;

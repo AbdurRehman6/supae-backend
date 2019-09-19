@@ -103,7 +103,7 @@ router.get('/getproductsbyid/:productId',(req,res,next) =>{
  // Get Categories Data from Categories collection based on id
 router.get('/getproductsbycategory/:categoryId',(req,res,next) =>{
     const id = req.params.categoryId
-    console.log(id);
+   
     Products.find({"categories":id})
     .populate('categories')
     // Products.findById(id)
@@ -130,31 +130,36 @@ router.get('/getproductsbycategory/:categoryId',(req,res,next) =>{
 router.post('/addproducts',upload.single('file'),(req,res,next) => {  
 
     console.log(req.body);  
-    const date = new Date;   
-const product  = new Products({  
-     _id:mongoose.Types.ObjectId(), 
-     productName:req.body.productName,
-     region:req.body.region,
-     price:req.body.price,
-     unit:req.body.unit,
-     description:req.body.description,
-     inStock:req.body.inStock,    
-     image:req.file.path,
-    createdDate:date.toString(),
-    updateDate:date.toString(),
-    categories:req.body.categoryId,
-}); 
-product.save().then(result =>{  
-    res.status(201).json({
-    productCreated:result,
-    message:'You have successfully added a product'
-     });
- }).catch(err =>{    
-     res.status(500).json({
-         error:err,
-         message:'An error occurred while adding a product, can you please try again'
-     })
- });
+    const date = new Date;     
+        const product  = new Products({  
+            _id:mongoose.Types.ObjectId(), 
+            productName:req.body.productName,
+            region:req.body.region,
+            price:req.body.price,
+            unit:req.body.unit,
+            description:req.body.description,
+            inStock:req.body.inStock,    
+            image:req.file.path,
+           createdDate:date.toString(),
+           updateDate:date.toString(),
+           categories:req.body.categoryId,
+       }); 
+       product.save().then(result =>{  
+           res.status(201).json({
+           productCreated:result,
+           message:'You have successfully added a product'
+            });
+        }).catch(err =>{  
+            res.status(200).json({
+                // error:'An error occurred while adding a product, can you please try again',
+                message:'An error occurred while adding a product, can you please try again'
+                       })
+      
+            // })
+        });
+        
+    
+
 });
 
  //update Products Data against productId
@@ -241,6 +246,55 @@ else
 
       })
   });
+ });
+ router.get('/productsearch/:query',(req,res,next) =>{
+    
+    const dataQuery = req.params.query
+    console.log(dataQuery.charAt(0).toUpperCase() + dataQuery.slice(1));
+    Products.aggregate([{         
+
+        $match: {
+            productName:{$regex:'.*'+ dataQuery.charAt(0).toUpperCase() + dataQuery.slice(1) +'.*'}
+        }
+    },
+    {
+               $project:
+                   {
+                     "_id"  :1 ,
+                       "productName":1,
+                       "region": 1,
+                       "price": 1,
+                       "unit": 1,
+                       "description": 1,
+                       "image": 1,
+                       "categories": 1,                     
+                   }
+           } 
+   
+])
+.exec()
+.then(data =>{
+    res.status(200).json(data);
+})
+    // Products.find({categories:id})
+    //  .populate('categories')
+    // .exec()
+    // .then(doc =>{
+    //    if(doc)
+    //    {
+    //      res.status(200).json(doc);
+    //    }
+    //    else
+    //    {
+    //        res.status(404).json({
+    //            message:"no valid entry found against this id"
+    //        });
+    //    }
+    // })
+    // .catch(err =>{
+    //     console.log(err);
+    //     res.status(500).json({})
+    // });
  });
 
 

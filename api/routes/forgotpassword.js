@@ -4,6 +4,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../../env/user.model');
 var nodemailer = require('nodemailer');
+const bcrypt = require('bcrypt-nodejs');
 const ForGotPassword = require('../../env/forgotpassword');
 
 router.post('/forgotpassword',(req,res,next) =>{
@@ -50,39 +51,56 @@ router.post('/forgotpassword',(req,res,next) =>{
            error:err
        })
    });
-    sendEmail(req.body.email,token)
+    sendEmail(req.body.email,token,user._id)
    }
    })
    .catch();
 })
-router.patch('/resetpassword/:token',(req,res,next) =>{  
+router.patch('/resetpassword',(req,res,next) =>{  
  
-
-  ForGotPassword.findOne({token:req.params.token})
+console.log(req.body)
+  ForGotPassword.findOne({token:req.body.token})
    .exec()
    .then(tkn =>{
-     if(tkn.token == req.params.token)
+     if(tkn.token == req.body.token)
      {
-      User.find({email:req.body.email})
-      .exec()
-      .then(users =>{
-        Categories.update({_id:users._id},{$set:{
-          password:req.body.password,
+      bcrypt.hash(req.body.password,null,null,(err,hash) =>{
+        if(err)
+        {
+            return res.status(500).json({
+                error:err,                      
+
+            })
+        }
+        else
+        {
+      // User.find({_id:req.body.userId})
+      // .exec()
+      // .then(users =>{
+      //   console.log(users);
+        User.update({_id:req.body.userId},{$set:{
+          password:hash,
          
           }})
         .exec()
         .then(result =>{
-            console.log(result);
-            res.status(200).json(result);
+          console.log(result);
+            res.status(200).json({
+              result:result,
+              message:"Congratulations! You have changed your password successfully"
+            });
         })
         .catch(err =>{
             console.log(err);
             res.status(500).json({
-                error:err
+                error:err,
+                message:"An error occurred while changing the password, can you please try it again"
             });
         })
-      })       
-     }
+      }
+      // })       
+    }) 
+    }
      else
      {
        res.status(500).json({
@@ -102,7 +120,7 @@ router.patch('/resetpassword/:token',(req,res,next) =>{
 
 
    //function to send emails 
-   function sendEmail(email,token)
+   function sendEmail(email,token,userId)
    {
        console.log(email)
        var transporter = nodemailer.createTransport({
@@ -118,7 +136,7 @@ router.patch('/resetpassword/:token',(req,res,next) =>{
          var mailOptions = {       
            to: email,
            subject: 'Forgot Password',
-           html: "<p>please click this link to reset your password <a href=http://192.168.18.22:4200/forgot-password/reset-password/"+token+">click here</a></p>" // html body
+           html: "<p>please click this link to reset your password <a href=http://192.168.18.22:4200/forgot-password/reset-password/"+token+','+userId+">click here</a></p>" // html body
          };
          transporter.sendMail(mailOptions, function(error, info){
            if (error) {
